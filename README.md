@@ -5,7 +5,7 @@
 ## Setting up
 * Get Vagrant from https://www.vagrantup.com/
 * Get the Vagrantfile from this repository
-* Follow the steps in VM_Setup.md
+* Follow the steps in [VM_Setup.md](VM_Setup.md)
 
 ## Generating maps
 * Instructions pending
