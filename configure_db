@@ -1,0 +1,94 @@
+unzip 1270055001_ste_2011_aust_shape.zip
+shp2pgsql -c -I STE_2011_AUST.shp > STE_2011_AUST.sql
+psql -d gisdb -h localhost -U maps -f STE_2011_AUST.sql
+
+unzip Commonwealth-Electoral-Boundaries-MAY-2016.zip
+cd "Commonwealth Electoral Boundaries MAY 2016/Standard"
+
+shp2pgsql -c -I ACT_COMM_ELECTORAL_shp > ACT_COMM_ELECTORAL_shp.sql
+psql -d gisdb -h localhost -U maps -f ACT_COMM_ELECTORAL_shp.sql
+shp2pgsql -c -I ACT_COMM_ELECTORAL_POLYGON_shp > ACT_COMM_ELECTORAL_POLYGON_shp.sql
+psql -d gisdb -h localhost -U maps -f ACT_COMM_ELECTORAL_POLYGON_shp.sql
+
+shp2pgsql -c -I NSW_COMM_ELECTORAL_shp > NSW_COMM_ELECTORAL_shp.sql
+psql -d gisdb -h localhost -U maps -f NSW_COMM_ELECTORAL_shp.sql
+shp2pgsql -c -I NSW_COMM_ELECTORAL_POLYGON_shp > NSW_COMM_ELECTORAL_POLYGON_shp.sql
+psql -d gisdb -h localhost -U maps -f NSW_COMM_ELECTORAL_POLYGON_shp.sql
+
+shp2pgsql -c -I NT_COMM_ELECTORAL_shp > NT_COMM_ELECTORAL_shp.sql
+psql -d gisdb -h localhost -U maps -f NT_COMM_ELECTORAL_shp.sql
+shp2pgsql -c -I NT_COMM_ELECTORAL_POLYGON_shp > NT_COMM_ELECTORAL_POLYGON_shp.sql
+psql -d gisdb -h localhost -U maps -f NT_COMM_ELECTORAL_POLYGON_shp.sql
+
+shp2pgsql -c -I QLD_COMM_ELECTORAL_shp > QLD_COMM_ELECTORAL_shp.sql
+psql -d gisdb -h localhost -U maps -f QLD_COMM_ELECTORAL_shp.sql
+shp2pgsql -c -I QLD_COMM_ELECTORAL_POLYGON_shp > QLD_COMM_ELECTORAL_POLYGON_shp.sql
+psql -d gisdb -h localhost -U maps -f QLD_COMM_ELECTORAL_POLYGON_shp.sql
+
+shp2pgsql -c -I SA_COMM_ELECTORAL_shp > SA_COMM_ELECTORAL_shp.sql
+psql -d gisdb -h localhost -U maps -f SA_COMM_ELECTORAL_shp.sql
+shp2pgsql -c -I SA_COMM_ELECTORAL_POLYGON_shp > SA_COMM_ELECTORAL_POLYGON_shp.sql
+psql -d gisdb -h localhost -U maps -f SA_COMM_ELECTORAL_POLYGON_shp.sql
+
+shp2pgsql -c -I TAS_COMM_ELECTORAL_shp > TAS_COMM_ELECTORAL_shp.sql
+psql -d gisdb -h localhost -U maps -f TAS_COMM_ELECTORAL_shp.sql
+shp2pgsql -c -I TAS_COMM_ELECTORAL_POLYGON_shp > TAS_COMM_ELECTORAL_POLYGON_shp.sql
+psql -d gisdb -h localhost -U maps -f TAS_COMM_ELECTORAL_POLYGON_shp.sql
+
+shp2pgsql -c -I VIC_COMM_ELECTORAL_shp > VIC_COMM_ELECTORAL_shp.sql
+psql -d gisdb -h localhost -U maps -f VIC_COMM_ELECTORAL_shp.sql
+shp2pgsql -c -I VIC_COMM_ELECTORAL_POLYGON_shp > VIC_COMM_ELECTORAL_POLYGON_shp.sql
+psql -d gisdb -h localhost -U maps -f VIC_COMM_ELECTORAL_POLYGON_shp.sql
+
+shp2pgsql -c -I WA_COMM_ELECTORAL_shp > WA_COMM_ELECTORAL_shp.sql
+psql -d gisdb -h localhost -U maps -f WA_COMM_ELECTORAL_shp.sql
+shp2pgsql -c -I WA_COMM_ELECTORAL_POLYGON_shp > WA_COMM_ELECTORAL_POLYGON_shp.sql
+psql -d gisdb -h localhost -U maps -f WA_COMM_ELECTORAL_POLYGON_shp.sql
+
+psql -d gisdb -h localhost -U maps -f comm_electoral.sql
+
+unzip townpointsaugust2013.zip
+cd "Town Points AUGUST 2013/Standard"
+shp2pgsql -c -I ACT_TOWN_POINT_shp > ACT_TOWN_POINT_shp.sql
+psql -d gisdb -h localhost -U maps -f ACT_TOWN_POINT_shp.sql
+shp2pgsql -c -I ACT_TOWN_shp > ACT_TOWN_shp.sql
+psql -d gisdb -h localhost -U maps -f ACT_TOWN_shp.sql
+
+shp2pgsql -c -I NSW_TOWN_POINT_shp > NSW_TOWN_POINT_shp.sql
+psql -d gisdb -h localhost -U maps -f NSW_TOWN_POINT_shp.sql
+shp2pgsql -c -I NSW_TOWN_shp > NSW_TOWN_shp.sql
+psql -d gisdb -h localhost -U maps -f NSW_TOWN_shp.sql
+
+shp2pgsql -c -I NT_TOWN_POINT_shp > NT_TOWN_POINT_shp.sql
+psql -d gisdb -h localhost -U maps -f NT_TOWN_POINT_shp.sql
+shp2pgsql -c -I NT_TOWN_shp > NT_TOWN_shp.sql
+psql -d gisdb -h localhost -U maps -f NT_TOWN_shp.sql
+
+shp2pgsql -c -I QLD_TOWN_POINT_shp > QLD_TOWN_POINT_shp.sql
+psql -d gisdb -h localhost -U maps -f QLD_TOWN_POINT_shp.sql
+shp2pgsql -c -I QLD_TOWN_shp > QLD_TOWN_shp.sql
+psql -d gisdb -h localhost -U maps -f QLD_TOWN_shp.sql
+
+shp2pgsql -c -I SA_TOWN_POINT_shp > SA_TOWN_POINT_shp.sql
+psql -d gisdb -h localhost -U maps -f SA_TOWN_POINT_shp.sql
+shp2pgsql -c -I SA_TOWN_shp > SA_TOWN_shp.sql
+psql -d gisdb -h localhost -U maps -f SA_TOWN_shp.sql
+
+shp2pgsql -c -I TAS_TOWN_POINT_shp > TAS_TOWN_POINT_shp.sql
+psql -d gisdb -h localhost -U maps -f TAS_TOWN_POINT_shp.sql
+shp2pgsql -c -I TAS_TOWN_shp > TAS_TOWN_shp.sql
+psql -d gisdb -h localhost -U maps -f TAS_TOWN_shp.sql
+
+shp2pgsql -c -I VIC_TOWN_POINT_shp > VIC_TOWN_POINT_shp.sql
+psql -d gisdb -h localhost -U maps -f VIC_TOWN_POINT_shp.sql
+shp2pgsql -c -I VIC_TOWN_shp > VIC_TOWN_shp.sql
+psql -d gisdb -h localhost -U maps -f VIC_TOWN_shp.sql
+
+shp2pgsql -c -I WA_TOWN_POINT_shp > WA_TOWN_POINT_shp.sql
+psql -d gisdb -h localhost -U maps -f WA_TOWN_POINT_shp.sql
+shp2pgsql -c -I WA_TOWN_shp > WA_TOWN_shp.sql
+psql -d gisdb -h localhost -U maps -f WA_TOWN_shp.sql
+
+psql -d gisdb -h localhost -U maps -f all_town_point.sql
+
+php populate_comm_electoral_labels.php
