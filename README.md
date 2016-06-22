@@ -1,6 +1,6 @@
 # Australian electoral mapping
 
-* Utilities to generate federal, state and local maps
+* Utilities to generate Australian federal, state and local maps
 
 ## Setting up
 * Get Vagrant from https://www.vagrantup.com/
