@@ -24,17 +24,25 @@ sudo apt install msttcorefonts
 
 Follow steps at: http://trac.osgeo.org/postgis/wiki/UsersWikiPostGIS22UbuntuPGSQL95Apt with 'gisdb' database per their example; in "Create new PGSQL user" section create user 'maps' password 'spam' including steps to get the shp2pgsql-gui utility (we only use shp2pgsql though)
 
-* Download/transfer State and Territory boundaries files to VM:
+* Download/transfer State and Territory boundaries files to a folder named mapdata in VM:
 
 From http://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/1270.0.55.001July%202011?OpenDocument download *State (S/T) ASGS Ed 2011 Digital Boundaries in ESRI Shapefile Format* (1270055001_ste_2011_aust_shape.zip)
 
-* Download/transfer Australian federal electoral boundaries to VM:
+* Download/transfer Australian federal electoral boundaries to a folder named mapdata in VM:
 
 From https://data.gov.au/dataset/psma-administrative-boundaries download *Commonwealth Electoral Boundaries MAY 2016* (Commonwealth-Electoral-Boundaries-MAY-2016.zip)
 
-* Download/transfer Town Points to VM:
+* Download/transfer Town Points to a folder named mapdata in VM:
 
 From https://data.gov.au/dataset/psma-administrative-boundaries download *Town Points AUGUST 2013* (townpointsaugust2013.zip)
+
+* Download/transfer Remnant Vegetation Cover of Queensland boundaries to a folder named mapdata in VM:
+
+From http://qldspatial.information.qld.gov.au/catalogue search and download *Remnant Vegetation Cover of Queensland Version 9.0 - April 2015* (DP_RemVegV_DCDB_A.zip)
+
+* Download/transfer State electoral boundaries Queensland boundaries to a folder named mapdata in VM (name the zip file: qld_state_electoral.zip):
+
+From http://qldspatial.information.qld.gov.au/catalogue search and download *State electoral boundaries Queensland* (download as format Shapefile - SHP - .shp / GDA94)
 
 * Load data into Postgres:
 

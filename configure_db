@@ -1,3 +1,5 @@
+cd mapdata
+
 unzip 1270055001_ste_2011_aust_shape.zip
 shp2pgsql -c -I STE_2011_AUST.shp > STE_2011_AUST.sql
 psql -d gisdb -h localhost -U maps -f STE_2011_AUST.sql
@@ -45,7 +47,10 @@ psql -d gisdb -h localhost -U maps -f WA_COMM_ELECTORAL_shp.sql
 shp2pgsql -c -I WA_COMM_ELECTORAL_POLYGON_shp > WA_COMM_ELECTORAL_POLYGON_shp.sql
 psql -d gisdb -h localhost -U maps -f WA_COMM_ELECTORAL_POLYGON_shp.sql
 
+cd ..
+cd ..
 psql -d gisdb -h localhost -U maps -f comm_electoral.sql
+php populate_comm_electoral_labels.php
 
 unzip townpointsaugust2013.zip
 cd "Town Points AUGUST 2013/Standard"
@@ -88,7 +93,22 @@ shp2pgsql -c -I WA_TOWN_POINT_shp > WA_TOWN_POINT_shp.sql
 psql -d gisdb -h localhost -U maps -f WA_TOWN_POINT_shp.sql
 shp2pgsql -c -I WA_TOWN_shp > WA_TOWN_shp.sql
 psql -d gisdb -h localhost -U maps -f WA_TOWN_shp.sql
-
+cd ..
+cd ..
 psql -d gisdb -h localhost -U maps -f all_town_point.sql
 
-php populate_comm_electoral_labels.php
+unzip -j qld_state_electoral.zip -d qld_state_electoral
+cd qld_state_electoral
+shp2pgsql -c -I State_electoral_boundaries > State_electoral_boundaries.sql
+psql -d gisdb -h localhost -U maps -f State_electoral_boundaries.sql
+cd ..
+psql -d gisdb -h localhost -U maps -f qld_state_electoral.sql
+php populate_qld_state_electoral_labels.php
+
+unzip DP_RemVegV_DCDB_A.zip
+cd Version_9_RVC_data
+shp2pgsql -c -I rvc13_v9_0_qld > rvc13_v9_0.sql
+psql -d gisdb -h localhost -U maps -f rvc13_v9_0.sql
+cd ..
+
+psql -d gisdb -h localhost -U maps -f fix_bonner.sql
