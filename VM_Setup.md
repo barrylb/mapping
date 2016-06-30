@@ -52,3 +52,24 @@ Transfer all github repository files to VM then run these commands:
 chmod u+x configure_db
 ./configure_db
 ```
+
+* Make generate scripts executable:
+
+```
+chmod u+x gen_*
+```
+
+* Create directories for map output:
+
+```
+mkdir federal
+mkdir federal/act
+mkdir federal/nsw
+mkdir federal/nt
+mkdir federal/qld
+mkdir federal/sa
+mkdir federal/tas
+mkdir federal/vic
+mkdir federal/wa
+mkdir state/qld
+```

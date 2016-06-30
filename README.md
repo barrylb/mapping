@@ -8,4 +8,21 @@
 * Follow the steps in [VM_Setup.md](VM_Setup.md)
 
 ## Generating maps
-* Instructions pending
+* To generate Federal division maps run these commands:
+
+```
+./gen_act
+./gen_nsw
+./gen_nt
+./gen_qld
+./gen_sa
+./gen_tas
+./gen_vic
+./gen_wa
+```
+
+* To generate Queensland state maps run this command:
+
+```
+./gen_qld_state
+```
