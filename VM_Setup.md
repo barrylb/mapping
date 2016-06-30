@@ -46,7 +46,9 @@ From http://qldspatial.information.qld.gov.au/catalogue search and download *Sta
 
 * Load data into Postgres:
 
-Transfer all github repository files to VM then run these commands:
+To ensure there is enough memory for the loading process, first adjust VM settings so that the virtual machine has 8GB RAM available.
+
+Then transfer all github repository files to VM then run these commands:
 
 ```
 chmod u+x configure_db
