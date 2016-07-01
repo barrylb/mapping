@@ -78,7 +78,7 @@ WHERE comm_electoral.ce_pid = sub1.ce_pid;
 
 create table comm_electoral_labels as
 SELECT ST_AsText(ST_Centroid(ST_Collect(geom))) as centroid, elect_div FROM comm_electoral
-group by elect_div
+group by elect_div;
 
 alter table comm_electoral_labels add label_latitude numeric;
 alter table comm_electoral_labels add label_longitude numeric;
