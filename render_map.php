@@ -84,13 +84,19 @@ class MapRenderer
         $this->scale_vert *= $zoom;
     }
 
-    protected function fillDivisions($image, $qryText, $ifColour, $fillColour)
+    protected function fillDivisions($image, $qryText, $ifColour, $defaultFillColour, $styles = [])
     {
         $tmp_image = imagecreatetruecolor(imagesx($image), imagesy($image));
-        $tmp_bgcolour = imagecolorallocate($tmp_image, 255, 0, 0);
+        $tmp_bgcolour = imagecolorallocate($tmp_image, 255, 254, 253);
         imagefill($tmp_image, 0, 0, $tmp_bgcolour);
         $result = pg_query($this->pgconn, $qryText);
         while ($row = pg_fetch_array($result)) {
+            if (isset($row['name']) && isset($styles['electorates'][$row['name']])) {
+                $style_name = $styles['electorates'][$row['name']];
+                $fillColour = $styles['styles'][$style_name]['fill'];
+            } else {
+                $fillColour = $defaultFillColour;
+            }
             FillPolygons($tmp_image, $fillColour, $tmp_bgcolour, $row['geom'], $this->centre_long, $this->centre_lat, $this->scale_horiz, $this->scale_vert);
         }
         MergeTemporaryImageIfColour($tmp_image, $image, $tmp_bgcolour, $ifColour);
@@ -99,7 +105,7 @@ class MapRenderer
     protected function outlineDivisionsIfNotColour($image, $qryText, $ifNotColour, $outlineColour)
     {
         $tmp_image = imagecreatetruecolor(imagesx($image), imagesy($image));
-        $tmp_bgcolour = imagecolorallocate($tmp_image, 255, 0, 0);
+        $tmp_bgcolour = imagecolorallocate($tmp_image, 255, 254, 253);
         imagefill($tmp_image, 0, 0, $tmp_bgcolour);
         $result = pg_query($this->pgconn, $qryText);
         while ($row = pg_fetch_array($result)) {
@@ -111,7 +117,7 @@ class MapRenderer
     protected function outlineDivisionsIfColour($image, $qryText, $ifColour, $outlineColour)
     {
         $tmp_image = imagecreatetruecolor(imagesx($image), imagesy($image));
-        $tmp_bgcolour = imagecolorallocate($tmp_image, 255, 0, 0);
+        $tmp_bgcolour = imagecolorallocate($tmp_image, 255, 254, 253);
         imagefill($tmp_image, 0, 0, $tmp_bgcolour);
         $result = pg_query($this->pgconn, $qryText);
         while ($row = pg_fetch_array($result)) {
@@ -167,32 +173,109 @@ class MapRenderer
         }
     }
 
-    protected function labelElectorates($image, $qryText, $fontName, $fontSize, $textColour, $textShadowColour)
+    protected function labelElectorates($image, $qryText, $fontName, $fontSize, $defaultTextColour, $defaultTextShadowColour, $styles = [])
     {
+        // using a temporary image only for line drawing purposes
+        // to avoid calculating intercept with text rectangle just paint over line
+        $tmp_image = imagecreatetruecolor(imagesx($image), imagesy($image));
+        $tmp_bgcolour = imagecolorallocate($tmp_image, 255, 0, 0);
+        imagefill($tmp_image, 0, 0, $tmp_bgcolour);
+        
         $image_width = imagesx($image);
         $image_height = imagesy($image);
         $result = pg_query($this->pgconn, $qryText);
         $fontfile = '/usr/share/fonts/truetype/msttcorefonts/' . $fontName;
+        $textToRender = [];
         while ($row = pg_fetch_array($result)) {
+            $textColour = $defaultTextColour;
+            $textShadowColour = $defaultTextShadowColour;
+            $line_from_rel_lat = null;
+            $line_from_rel_long = null;
+            if (isset($row['name']) && isset($styles['electorates'][$row['name']])) {
+                $style_name = $styles['electorates'][$row['name']];
+                if (isset($styles['styles'][$style_name]['electoratetextcolour'])) {
+                    $textColour = $styles['styles'][$style_name]['electoratetextcolour'];
+                }
+                if (isset($styles['styles'][$style_name]['electoratetextshadow'])) {
+                    $textShadowColour = $styles['styles'][$style_name]['electoratetextshadow'];
+                }
+            }
+            if (isset($row['name']) && isset($styles['electorate_labelling'][$row['name']])) {
+                $line_from_rel_lat = $styles['electorate_labelling'][$row['name']]['line_from_rel_lat'];
+                $line_from_rel_long = $styles['electorate_labelling'][$row['name']]['line_from_rel_long'];
+            }
+
             $longitude = $row['longitude'];
             $latitude = $row['latitude'];
-            $x = intval(($longitude - $this->centre_long) * $this->scale_horiz + $image_width/2);
-            $y = $image_height - intval(($latitude - $this->centre_lat) * $this->scale_vert + $image_height/2);
-            $labelText = $row['name'];
+
+            if (($line_from_rel_lat !== null) && ($line_from_rel_long !== null)) {
+                $line_from_lat = $latitude + $line_from_rel_lat;
+                $line_from_long = $longitude + $line_from_rel_long;
+                $line_to_lat = $latitude;
+                $line_to_long = $longitude;
+                $longitude = $line_from_long;
+                $latitude = $line_from_lat;
+                //
+                $line_from_x = intval(($line_from_long - $this->centre_long) * $this->scale_horiz + $image_width/2);
+                $line_from_y = $image_height - intval(($line_from_lat - $this->centre_lat) * $this->scale_vert + $image_height/2);
+                $line_to_x = intval(($line_to_long - $this->centre_long) * $this->scale_horiz + $image_width/2);
+                $line_to_y = $image_height - intval(($line_to_lat - $this->centre_lat) * $this->scale_vert + $image_height/2);
+                imageline($tmp_image, $line_from_x, $line_from_y, $line_to_x, $line_to_y, 0);
+            }
+            
+            $label_x = intval(($longitude - $this->centre_long) * $this->scale_horiz + $image_width/2);
+            $label_y = $image_height - intval(($latitude - $this->centre_lat) * $this->scale_vert + $image_height/2);
+            $labelText = $row['displayname'];
             $bbox = imagettfbbox($fontSize, 0, $fontfile, $labelText);
+
+            $label_x-=($bbox[2] - $bbox[0])/2;
+            $label_y-=($bbox[7] - $bbox[1])/2;
+
+            imagefilledrectangle($tmp_image, $label_x, $label_y, $label_x + $bbox[2], $label_y + $bbox[7], $tmp_bgcolour);
             
-            $x-=($bbox[2] - $bbox[0])/2;
-            $y-=($bbox[3] - $bbox[1])/2;
-            
-            imagettftext($image, $fontSize, 0, $x-1, $y+1, $textShadowColour, $fontfile, $labelText);
-            imagettftext($image, $fontSize, 0, $x-1, $y, $textShadowColour, $fontfile, $labelText);
-            imagettftext($image, $fontSize, 0, $x-1, $y-1, $textShadowColour, $fontfile, $labelText);
-            imagettftext($image, $fontSize, 0, $x, $y-1, $textShadowColour, $fontfile, $labelText);
-            imagettftext($image, $fontSize, 0, $x+1, $y-1, $textShadowColour, $fontfile, $labelText);
-            imagettftext($image, $fontSize, 0, $x+1, $y, $textShadowColour, $fontfile, $labelText);
-            imagettftext($image, $fontSize, 0, $x+1, $y+1, $textShadowColour, $fontfile, $labelText);
-            imagettftext($image, $fontSize, 0, $x, $y+1, $textShadowColour, $fontfile, $labelText);
-            imagettftext($image, $fontSize, 0, $x, $y, $textColour, $fontfile, $labelText);
+            $textToRender[] = ['labelText' => $labelText, 'label_x'=>$label_x, 'label_y'=>$label_y, 'textColour'=>$textColour, 'textShadowColour'=>$textShadowColour];
+        }
+        MergeTemporaryImage($tmp_image, $image, $tmp_bgcolour);
+        foreach ($textToRender as $params) {
+            imagettftext($image, $fontSize, 0, $params['label_x']-1, $params['label_y']+1, $params['textShadowColour'], $fontfile, $params['labelText']);
+            imagettftext($image, $fontSize, 0, $params['label_x']-1, $params['label_y'], $params['textShadowColour'], $fontfile, $params['labelText']);
+            imagettftext($image, $fontSize, 0, $params['label_x']-1, $params['label_y']-1, $params['textShadowColour'], $fontfile, $params['labelText']);
+            imagettftext($image, $fontSize, 0, $params['label_x'], $params['label_y']-1, $params['textShadowColour'], $fontfile, $params['labelText']);
+            imagettftext($image, $fontSize, 0, $params['label_x']+1, $params['label_y']-1, $params['textShadowColour'], $fontfile, $params['labelText']);
+            imagettftext($image, $fontSize, 0, $params['label_x']+1, $params['label_y'], $params['textShadowColour'], $fontfile, $params['labelText']);
+            imagettftext($image, $fontSize, 0, $params['label_x']+1, $params['label_y']+1, $params['textShadowColour'], $fontfile, $params['labelText']);
+            imagettftext($image, $fontSize, 0, $params['label_x'], $params['label_y']+1, $params['textShadowColour'], $fontfile, $params['labelText']);
+            imagettftext($image, $fontSize, 0, $params['label_x'], $params['label_y'], $params['textColour'], $fontfile, $params['labelText']);
+        }
+    }
+
+    protected function renderLegend($image, $legend_x, $legend_y, $styles, $electorates)
+    {
+        $legend = [];
+        foreach ($electorates as $electorate) {
+            if (isset($styles['electorates'][$electorate])) {
+                $style_name = $styles['electorates'][$electorate];
+                $fill_colour = $styles['styles'][$style_name]['fill'];
+                $legend[$style_name] = $fill_colour;
+            }
+        }
+        ksort($legend);
+
+        $box_width = 25;
+        $box_height = 25;
+        $font_size = 12;
+        $font_name = 'verdana.ttf';
+        $font_file = '/usr/share/fonts/truetype/msttcorefonts/' . $font_name;
+        $border_colour = imagecolorallocate($image, 0, 0, 0);
+        $text_colour = imagecolorallocate($image, 0, 0, 0);
+        foreach ($legend as $label_text => $fill_colour) {
+            imagefilledrectangle($image, $legend_x, $legend_y, $legend_x + $box_width, $legend_y + $box_height, $fill_colour);
+            imagerectangle($image, $legend_x, $legend_y, $legend_x + $box_width, $legend_y + $box_height, $border_colour);
+            $bbox = imagettfbbox($font_size, 0, $font_file, $label_text);
+            $label_x = $legend_x + $box_width + 4;
+            $label_y = $legend_y + $box_height/2 - ($bbox[7] - $bbox[1])/2;
+            imagettftext($image, $font_size, 0, $label_x, $label_y, $text_colour, $font_file, $label_text);
+            $legend_y += $box_height + 4;
         }
     }
 
@@ -273,7 +356,7 @@ class MapRenderer
         $result = pg_query($this->pgconn, "SELECT ST_AsText(ST_Simplify(rvc13_v9_0_qld.geom,$resolution)) as geom
           FROM rvc13_v9_0_qld, qld_state_electoral elb
           WHERE ST_Intersects(rvc13_v9_0_qld.geom, elb.geom) and
-            rvc13_v9_0_qld.cover in ('Estuary','Water') and adminarean in ($electorate)");
+            rvc13_v9_0_qld.cover in ('Estuary','Water') and adminarean in (" . ArrayToQuoteCommaList($electorate) . ")");
         while ($row = pg_fetch_array($result)) {
             FillPolygons(
                 $image,
@@ -300,31 +383,37 @@ class MapRenderer
         $electorateFontName,
         $electorateFontSize2,
         $electorateFontName2,
-        $zoom,
-        $shiftlat,
-        $shiftlong,
-        $boxAroundHi,
-        $electorateLabels,
-        $electorateLabels2,
-        $localities,
-        $mbrDivisions,
-        $electorate,
-        $electoratealt,
-        $electoratehi,
-        $filename
+        float $zoom,
+        float $shiftlat,
+        float $shiftlong,
+        bool $boxAroundHi,
+        array $electorateLabels,
+        array $electorateLabels2,
+        array $localities,
+        array $mbrDivisions,
+        array $electorate,
+        array $electoratealt,
+        array $electoratehi,
+        string $filename,
+        array $styles = [],
+        int $legend_x = null,
+        int $legend_y = null
     ) {
         // prepare some queries
         $qMBR = "SELECT ST_AsText(ST_Envelope(ST_Collect(geom))) as mbr 
-            FROM comm_electoral WHERE elect_div in ($mbrDivisions)";
-        $qMBRByDiv = "SELECT ST_AsText(ST_Envelope(ST_Collect(geom))) as mbr, elect_div FROM comm_electoral WHERE elect_div in (
-            $electoratehi) GROUP BY elect_div";
-        $qElectorates = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM comm_electoral WHERE elect_div in ($electorate)";
-        $qElectoratesAlt = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM comm_electoral WHERE elect_div in ($electoratealt)";
-        $qElectoratesHi = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM comm_electoral WHERE elect_div in ($electoratehi)";
-        $qLabelElectorates = "SELECT label_latitude as latitude, label_longitude as longitude, elect_div_displayname as name 
-            FROM comm_electoral_labels WHERE elect_div in ($electorateLabels)";
-        $qLabelElectorates2 = "SELECT label_latitude as latitude, label_longitude as longitude, elect_div_displayname as name 
-            FROM comm_electoral_labels WHERE elect_div in ($electorateLabels2)";
+            FROM comm_electoral WHERE elect_div in (" . ArrayToQuoteCommaList($mbrDivisions) . ")";
+        $qMBRByDiv = "SELECT ST_AsText(ST_Envelope(ST_Collect(geom))) as mbr, elect_div FROM comm_electoral
+            WHERE elect_div in (" . ArrayToQuoteCommaList($electoratehi) . ") GROUP BY elect_div";
+        $qElectorates = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom, elect_div as name
+            FROM comm_electoral WHERE elect_div in (" . ArrayToQuoteCommaList($electorate) . ")";
+        $qElectoratesAlt = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM comm_electoral
+            WHERE elect_div in (" . ArrayToQuoteCommaList($electoratealt) . ")";
+        $qElectoratesHi = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM comm_electoral
+            WHERE elect_div in (" . ArrayToQuoteCommaList($electoratehi) . ")";
+        $qLabelElectorates = "SELECT label_latitude as latitude, label_longitude as longitude, elect_div as name, elect_div_displayname as displayname 
+            FROM comm_electoral_labels WHERE elect_div in (" . ArrayToQuoteCommaList($electorateLabels) . ")";
+        $qLabelElectorates2 = "SELECT label_latitude as latitude, label_longitude as longitude, elect_div as name, elect_div_displayname as displayname 
+            FROM comm_electoral_labels WHERE elect_div in (" . ArrayToQuoteCommaList($electorateLabels2) . ")";
 
         $this->determineDimensions($qMBR, $zoom, $shiftlat, $shiftlong, $render_image_width, $render_image_height);
 
@@ -337,7 +426,7 @@ class MapRenderer
         $outlineElectorateColour = imagecolorallocate($image, 0, 0, 0);
         $boxAroundHiColour = imagecolorallocate($image, 0, 0, 0);
         $landColour = imagecolorallocate($image, 255, 254, 233);
-        $electorateColour = imagecolorallocate($image, 246, 225, 185);
+        $electorateColourDefault = imagecolorallocate($image, 246, 225, 185);
         $electorateHiColour = imagecolorallocate($image, 0, 128, 0);
         $electorateAltColour = imagecolorallocate($image, 255, 220, 145);
         $outlineElectorateAltColour = imagecolorallocate($image, 255, 255, 255);
@@ -347,6 +436,38 @@ class MapRenderer
         $electorateTextShadowColour2 = imagecolorallocate($image, 255, 255, 255);
         $localityTextColour = imagecolorallocate($image, 255, 255, 255);
         $localityTextShadowColour = imagecolorallocate($image, 46, 47, 57);
+
+        $styles_alloc = [];
+        if ($styles) {
+            foreach ($styles['styles'] as $style_name => $style) {
+                if (isset($style['fill'])) {
+                    $styles_alloc['styles'][$style_name]['fill'] = imagecolorallocate(
+                        $image,
+                        hexdec(substr($style['fill'], 0, 2)),
+                        hexdec(substr($style['fill'], 2, 2)),
+                        hexdec(substr($style['fill'], 4, 2))
+                    );
+                }
+                if (isset($style['electoratetextshadow'])) {
+                    $styles_alloc['styles'][$style_name]['electoratetextshadow'] = imagecolorallocate(
+                        $image,
+                        hexdec(substr($style['electoratetextshadow'], 0, 2)),
+                        hexdec(substr($style['electoratetextshadow'], 2, 2)),
+                        hexdec(substr($style['electoratetextshadow'], 4, 2))
+                    );
+                }
+                if (isset($style['electoratetextcolour'])) {
+                    $styles_alloc['styles'][$style_name]['electoratetextcolour'] = imagecolorallocate(
+                        $image,
+                        hexdec(substr($style['electoratetextcolour'], 0, 2)),
+                        hexdec(substr($style['electoratetextcolour'], 2, 2)),
+                        hexdec(substr($style['electoratetextcolour'], 4, 2))
+                    );
+                }
+            }
+            $styles_alloc['electorates'] = $styles['electorates'];
+            $styles_alloc['electorate_labelling'] = $styles['electorate_labelling'];
+        }
 
         // first fill entire image with water colour
         imagefill($image, 0, 0, $waterColour);
@@ -363,12 +484,12 @@ class MapRenderer
         }
 
         if ($electorate) {
-            $this->fillDivisions($image, $qElectorates, $landColour, $electorateColour);
+            $this->fillDivisions($image, $qElectorates, $landColour, $electorateColourDefault, $styles_alloc);
         }
 
         if ($electoratehi) {
             $this->fillDivisions($image, $qElectoratesHi, $landColour, $electorateHiColour); // Paint over land
-            $this->fillDivisions($image, $qElectoratesHi, $electorateColour, $electorateHiColour); // Paint over electorate
+            $this->fillDivisions($image, $qElectoratesHi, $electorateColourDefault, $electorateHiColour); // Paint over electorate
         }
 
         if ($electorate) {
@@ -386,15 +507,41 @@ class MapRenderer
         $this->scale_vert = $this->scale_vert * $final_height / $render_image_height;
 
         if ($electorateLabels) {
-            $this->labelElectorates($final_image, $qLabelElectorates, $electorateFontName, $electorateFontSize, $electorateTextColour, $electorateTextShadowColour);
+            $this->labelElectorates(
+                $final_image,
+                $qLabelElectorates,
+                $electorateFontName,
+                $electorateFontSize,
+                $electorateTextColour,
+                $electorateTextShadowColour,
+                $styles_alloc
+            );
         }
 
         if ($electorateLabels2) {
-            $this->labelElectorates($final_image, $qLabelElectorates2, $electorateFontName2, $electorateFontSize2, $electorateTextColour2, $electorateTextShadowColour2);
+            $this->labelElectorates(
+                $final_image,
+                $qLabelElectorates2,
+                $electorateFontName2,
+                $electorateFontSize2,
+                $electorateTextColour2,
+                $electorateTextShadowColour2
+            );
         }
                   
         if ($localities) {
-            $this->labelLocalities($final_image, $localities, $localityFontName, $localityFontSize, $localityTextColour, $localityTextShadowColour);
+            $this->labelLocalities(
+                $final_image,
+                $localities,
+                $localityFontName,
+                $localityFontSize,
+                $localityTextColour,
+                $localityTextShadowColour
+            );
+        }
+
+        if (($legend_x !== null) && ($legend_y !== null)) {
+            $this->renderLegend($final_image, $legend_x, $legend_y, $styles_alloc, $electorate);
         }
 
         imagepng($final_image, $filename);
@@ -426,16 +573,20 @@ class MapRenderer
         $filename
     ) {
         // prepare some queries
-        $qMBR = "SELECT ST_AsText(ST_Envelope(ST_Collect(geom))) as mbr FROM qld_state_electoral WHERE adminarean in ($mbrDivisions)";
-        $qMBRByDiv = "SELECT ST_AsText(ST_Envelope(ST_Collect(geom))) as mbr FROM qld_state_electoral WHERE adminarean in ($mbrDivisions)
-          GROUP BY adminarean";
-        $qElectorates = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM qld_state_electoral WHERE adminarean in ($electorate)";
-        $qElectoratesAlt = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM qld_state_electoral WHERE adminarean in ($electoratealt)";
-        $qElectoratesHi = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM qld_state_electoral WHERE adminarean in ($electoratehi)";
-        $qLabelElectorates = "SELECT label_latitude as latitude, label_longitude as longitude, adminarean_displayname as name 
-            FROM qld_state_electoral_labels WHERE adminarean in ($electorateLabels)";
-        $qLabelElectorates2 = "SELECT label_latitude as latitude, label_longitude as longitude, adminarean_displayname as name 
-            FROM qld_state_electoral_labels WHERE adminarean in ($electorateLabels2)";
+        $qMBR = "SELECT ST_AsText(ST_Envelope(ST_Collect(geom))) as mbr FROM qld_state_electoral
+            WHERE adminarean in (" . ArrayToQuoteCommaList($mbrDivisions) . ")";
+        $qMBRByDiv = "SELECT ST_AsText(ST_Envelope(ST_Collect(geom))) as mbr FROM qld_state_electoral
+            WHERE adminarean in (" . ArrayToQuoteCommaList($mbrDivisions) . ") GROUP BY adminarean";
+        $qElectorates = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM qld_state_electoral
+            WHERE adminarean in (" . ArrayToQuoteCommaList($electorate) . ")";
+        $qElectoratesAlt = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM qld_state_electoral
+            WHERE adminarean in (" . ArrayToQuoteCommaList($electoratealt) . ")";
+        $qElectoratesHi = "SELECT ST_AsText(ST_Simplify(geom,$resolution)) as geom FROM qld_state_electoral
+            WHERE adminarean in (" . ArrayToQuoteCommaList($electoratehi) . ")";
+        $qLabelElectorates = "SELECT label_latitude as latitude, label_longitude as longitude, adminarean as name, adminarean_displayname as displayname 
+            FROM qld_state_electoral_labels WHERE adminarean in (" . ArrayToQuoteCommaList($electorateLabels) . ")";
+        $qLabelElectorates2 = "SELECT label_latitude as latitude, label_longitude as longitude, adminarean as name, adminarean_displayname as displayname 
+            FROM qld_state_electoral_labels WHERE adminarean in (" . ArrayToQuoteCommaList($electorateLabels2) . ")";
 
         $this->determineDimensions($qMBR, $zoom, $shiftlat, $shiftlong, $render_image_width, $render_image_height);
 
@@ -522,27 +673,27 @@ foreach ($argv as $idx => $arg) {
 }
 
 if (isset($args['electorate'])) {
-    $electorate = QuoteCommaList($args['electorate']);
+    $electorate = explode(',', $args['electorate']);
 } else {
-    $electorate = '';
+    $electorate = [];
 }
 
 if (isset($args['electoratehi'])) {
-    $electoratehi = QuoteCommaList($args['electoratehi']);
+    $electoratehi = explode(',', $args['electoratehi']);
 } else {
-    $electoratehi = '';
+    $electoratehi = [];
 }
   
 if (isset($args['electoratealt'])) {
-    $electoratealt = QuoteCommaList($args['electoratealt']);
+    $electoratealt = explode(',', $args['electoratealt']);
 } else {
-    $electoratealt = '';
+    $electoratealt = [];
 }
 
 if (isset($args['electoratembr']) && ($args['electoratembr'] != '')) {
-    $mbr = QuoteCommaList($args['electoratembr']);
+    $mbr = explode(',', $args['electoratembr']);
 } else {
-    $mbr = QuoteCommaList($args['electorate']);
+    $mbr = explode(',', $args['electorate']);
 }
 
 if (isset($args['resolution'])) {
@@ -609,7 +760,19 @@ if (isset($args['z'])) {
 } else {
     $zoom = 1.0;
 }
-  
+
+if (isset($args['legend_x'])) {
+    $legend_x = intval($args['legend_x']);
+} else {
+    $legend_x = null;
+}
+ 
+if (isset($args['legend_y'])) {
+    $legend_y = intval($args['legend_y']);
+} else {
+    $legend_y = null;
+}
+
 if (isset($args['shiftlat'])) {
     $shiftlat = floatval($args['shiftlat']);
 } else {
@@ -629,15 +792,15 @@ if (isset($args['boxaroundhi'])) {
 }
   
 if (isset($args['electoratelabels'])) {
-    $electorateLabels = QuoteCommaList($args['electoratelabels']);
+    $electorateLabels = explode(',', $args['electoratelabels']);
 } else {
-    $electorateLabels = false;
+    $electorateLabels = [];
 }
 
 if (isset($args['electoratelabels2'])) {
-    $electorateLabels2 = QuoteCommaList($args['electoratelabels2']);
+    $electorateLabels2 = explode(',', $args['electoratelabels2']);
 } else {
-    $electorateLabels2 = false;
+    $electorateLabels2 = [];
 }
   
 if (isset($args['localities'])) {
@@ -666,6 +829,12 @@ if (isset($args['filename'])) {
     $filename = 'render.png';
 }
 
+if (isset($args['stylefile'])) {
+    $styleFileContents = file_get_contents($args['stylefile']);
+    $styles = json_decode($styleFileContents, true);
+} else {
+    $styles = [];
+}
 /////////////
 
 /*echo 
@@ -716,7 +885,10 @@ if ($type == 'federal') {
         $electorate,
         $electoratealt,
         $electoratehi,
-        $filename
+        $filename,
+        $styles,
+        $legend_x,
+        $legend_y
     );
 } elseif ($type == 'qld_state') {
     $renderer->renderQLDState(

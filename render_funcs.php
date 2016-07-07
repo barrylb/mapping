@@ -133,6 +133,21 @@ function QuoteCommaList($alist)
     return ArrayToQuoteCommaList(explode(',', $alist));
 }
 
+function MergeTemporaryImage($srcImage, $destImage, $unfilledColour)
+{
+    // Fill in the final image - scan the temporary image for filled pixels; only change final image pixel if it is land color
+    $image_width = imagesx($srcImage);
+    $image_height = imagesy($srcImage);
+    for ($x=0; $x<$image_width; $x++) {
+        for ($y=0; $y<$image_height; $y++) {
+            $src_pix = imagecolorat($srcImage, $x, $y);
+            if ($src_pix != $unfilledColour) {
+                imagesetpixel($destImage, $x, $y, $src_pix);
+            }
+        }
+    }
+}
+
 function MergeTemporaryImageIfColour($srcImage, $destImage, $unfilledColour, $ifColour)
 {
     // Fill in the final image - scan the temporary image for filled pixels; only change final image pixel if it is land color

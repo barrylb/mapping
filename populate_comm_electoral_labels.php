@@ -20,6 +20,16 @@ while ($row = pg_fetch_array($result)) {
     } elseif ($elect_div == 'SYDNEY') {
         $latitude = -33.89;
         $longitude = 151.20;
+    } elseif ($elect_div == 'BASS') {
+        $latitude -= 0.2;
+    } elseif ($elect_div == 'GELLIBRAND') {
+        $longitude += 0.02;
+    } elseif ($elect_div == 'SCULLIN') {
+        $latitude -= 0.01;
+    } elseif ($elect_div == 'MURRAY') {
+        $latitude += 0.1;
+    } elseif ($elect_div == 'FREMANTLE') {
+        $longitude += 0.03;
     }
     $displayname = ucwords(strtolower($elect_div), $delimiters = " \t\r\n\f\v-'");
     if ($elect_div == 'MCMAHON') {
