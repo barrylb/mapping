@@ -35,6 +35,7 @@ Then skip to the *Generating maps* section below.
 ./gen_tas
 ./gen_vic
 ./gen_wa
+./gen_by_party
 ```
 
 * To generate Queensland state maps run this command:
